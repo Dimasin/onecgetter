@@ -1,0 +1,11 @@
+# Секреты и конфиги
+.env
+config.env
+*.env
+
+# Настройки редактора
+.vscode/
+
+# Кэш Python
+__pycache__/
+*.pyc

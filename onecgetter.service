@@ -1,0 +1,15 @@
+[Unit]
+Description=Downloading a backup copy of 1C on a schedule
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/onecgetter
+EnvironmentFile=/opt/onecgetter/config.env
+ExecStart=/opt/onecgetter/venv/bin/python -u getter_grm.py
+User=onecget
+
+SyslogIdentifier=onecgetter
+
+[Install]
+WantedBy=multi-user.target

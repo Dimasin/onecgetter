@@ -1,0 +1,11 @@
+[Unit]
+Description=Run onecgetter script every day
+
+[Timer]
+OnCalendar=*-*-* 06:05:00
+RandomizedDelaySec=3600
+FixedRandomDelay=false
+Persistent=true
+
+[Install]
+WantedBy=timers.target
