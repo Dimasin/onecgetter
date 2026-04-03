@@ -1,3 +1,4 @@
+```
 sudo useradd -r -U -m -d /opt/onecgetter -s /usr/sbin/nologin onecget
 sudo cp getter_grm.py /opt/onecgetter/
 sudo cp config.env.example /opt/onecgetter/
@@ -33,3 +34,4 @@ sudo systemctl enable onecgetter.timer
 sudo systemctl start onecgetter.timer
 sudo systemctl status onecgetter.timer
 systemctl list-timers
+```
