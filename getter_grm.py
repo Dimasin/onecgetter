@@ -104,7 +104,7 @@ def downFile(download_url: str):
     try:
         # Запускаем закачку
         result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=3600)
-        print(f"Info downFile: file down success: {full_path}\n", result.stdout)
+        print(f"Info downFile: file down success: {full_path}", result.stdout)
         return full_path
     except subprocess.CalledProcessError as e:
         print(f"Error downFile: {to_str(e.stdout)},{to_str(e.stderr)}")
@@ -117,19 +117,22 @@ def testFile(full_path: str):
     Тест zip архива
     """
     report_lines = [f"Info testFile: checking {full_path}"]
-    with zipfile.ZipFile(full_path, 'r') as z:
-        if z.testzip():
-            msg = "Error testFile: file not found or corrupt"
-            print(msg)
-            report_lines.append(msg)
-            return 
-        for info in z.infolist():
-            # Не пишем в отчет нулевые файлы
-            info_file = f"{info.filename} — {round(info.file_size/1024**2, 2)} MB"
-            if '0.0 MB' not in info_file:
-                report_lines.append(info_file)
-        print(f"Info testFile: file check success")
-    return "\n".join(report_lines)
+    try:
+        with zipfile.ZipFile(full_path, 'r') as z:
+            if z.testzip():
+                report_lines.append("Error testFile: file not found or corrupt")
+            else:
+                for info in z.infolist():
+                    # Не пишем в отчет нулевые файлы
+                    info_file = f"{info.filename} — {round(info.file_size/1024**2, 2)} MB"
+                    if '0.0 MB' not in info_file:
+                        report_lines.append(info_file)
+                report_lines.append("Info testFile: file check success")
+    except Exception as e:
+        report_lines.append(f"Error testFile: {e}")
+    rep = "\n".join(report_lines)
+    print(rep)
+    return rep
 
 def send_ntfy_message(message: str):
     """

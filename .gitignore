@@ -9,3 +9,8 @@ config.env
 # Кэш Python
 __pycache__/
 *.pyc
+
+# Архивы
+*.zip
+*.gz
+*.7z
