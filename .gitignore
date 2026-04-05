@@ -2,6 +2,7 @@
 .env
 config.env
 *.env
+*.json
 
 # Настройки редактора
 .vscode/
