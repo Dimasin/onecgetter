@@ -1,6 +1,6 @@
 ```
 sudo useradd -r -U -m -d /opt/onecgetter -s /usr/sbin/nologin onecget
-sudo cp getter_grm.py /opt/onecgetter/
+sudo cp onecgetter.py /opt/onecgetter/
 sudo cp config.env.example /opt/onecgetter/
 sudo cp requirements.txt /opt/onecgetter/
 sudo cp /opt/onecgetter/config.env.example /opt/onecgetter/config.env
