@@ -43,7 +43,7 @@ def getUrlGrm():
     password = os.getenv("PassGrm")
     with sync_playwright() as p:
         # Запускаем Browser
-        browser = p.chromium.launch(channel="chrome", headless=True)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(accept_downloads=False)
         page = context.new_page()
         page.goto(target_url)
@@ -173,7 +173,7 @@ def downFileFresh():
     out_files = []
     with sync_playwright() as p:
         # Запускаем Browser
-        browser = p.chromium.launch(channel="chrome", headless=True)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(accept_downloads=True)
         page = context.new_page()
         page.goto(target_url)
