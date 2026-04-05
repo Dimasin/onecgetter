@@ -6,7 +6,7 @@ After=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/onecgetter
 EnvironmentFile=/opt/onecgetter/config.env
-ExecStart=/opt/onecgetter/venv/bin/python -u getter_grm.py
+ExecStart=/opt/onecgetter/venv/bin/python -u onecgetter.py
 User=onecget
 
 SyslogIdentifier=onecgetter

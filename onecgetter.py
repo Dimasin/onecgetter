@@ -43,7 +43,7 @@ def getUrlGrm():
     password = os.getenv("PassGrm")
     with sync_playwright() as p:
         # Запускаем Browser
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(channel="chrome", headless=True)
         context = browser.new_context(accept_downloads=False)
         page = context.new_page()
         page.goto(target_url)
@@ -55,14 +55,14 @@ def getUrlGrm():
         random_sleep();
         page.get_by_text("Войти").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(3,5);
+        random_sleep(6,9);
         # 2. Проход по ссылкам
         page.get_by_text("Управление базами").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(3,5);
+        random_sleep(6,9);
         page.get_by_title("Сделать выгрузку").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(3,5);
+        random_sleep(6,9);
         with page.expect_popup() as popup_info:
             page.get_by_alt_text("Кнопка скачать").first.click()
         new_tab = popup_info.value
@@ -123,9 +123,10 @@ def testFile(full_path: str):
                 report_lines.append("Error testFile: file not found or corrupt")
             else:
                 for info in z.infolist():
-                    # Не пишем в отчет нулевые файлы
-                    info_file = f"{info.filename} — {round(info.file_size/1024**2, 2)} MB"
-                    if '0.0 MB' not in info_file:
+                    # Не пишем в отчет файлы меньше 100 MB
+                    fsize = round(info.file_size/1024**2, 2)
+                    if (fsize > 100):
+                        info_file = f"{info.filename} — {fsize} MB"
                         report_lines.append(info_file)
                 report_lines.append("Info testFile: file check success")
     except Exception as e:
@@ -146,7 +147,7 @@ def send_ntfy_message(message: str):
             data=message.encode('utf-8'),
             headers={
                 "Authorization": f"Basic {ntfy_cred}",
-                "Title": "Bcapper 1C GRM",  # Заголовок уведомления
+                "Title": "Bcapper 1C",  # Заголовок уведомления
                 "Priority": "low", # Можно менять на min, low, high, max
             }
         )
@@ -172,7 +173,7 @@ def downFileFresh():
     out_files = []
     with sync_playwright() as p:
         # Запускаем Browser
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(channel="chrome", headless=True)
         context = browser.new_context(accept_downloads=True)
         page = context.new_page()
         page.goto(target_url)
@@ -184,14 +185,15 @@ def downFileFresh():
         random_sleep();
         page.get_by_role("button", name="Войти").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(3,5);
+        random_sleep(6,9);
         # 2. Проход по ссылкам
         page.locator('span[title="Архивирование"]').click()
         page.wait_for_load_state("networkidle")
-        random_sleep(3,5);       
+        random_sleep(6,9);       
         page.locator(".gridLine").first.wait_for(state="attached", timeout=60000)
         rows = page.locator("#grid_form1_Список > .gridBody > .gridLine")
         count = rows.count()
+        random_sleep(6,9);
         for i in range(1,count):
             if not target_base:
                 break
@@ -229,5 +231,5 @@ send_ntfy_message(rep)
 # Bcap Fresh
 out_files = downFileFresh()
 for file in out_files:
-    rep = testFile(fp)
+    rep = testFile(file)
     send_ntfy_message(rep)
