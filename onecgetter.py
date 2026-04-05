@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import zipfile
 import requests
 import ast
-from datetime import date
+import re
 
 load_dotenv('config.env')
 
@@ -161,7 +161,17 @@ def send_ntfy_message(message: str):
     except Exception as e:
         print(f"Error ntfy: Unknow alert error: {e}")
         return False
-    
+
+def extract_date(s):
+    """
+    Ищет паттерн: 2 цифры, точка, 2 цифры, точка, 4 цифры, возвращает yyyy-mm-dd или -
+    """
+    match = re.search(r'(\d{2})\.(\d{2})\.(\d{4})', s) 
+    if match:
+        day, month, year = match.groups()
+        return f"{year}-{month}-{day}"
+    return "-"
+
 def downFileFresh():
     """
     Загружает бэкапы target_base с сайта target_url в каталоги target_dir
@@ -172,7 +182,6 @@ def downFileFresh():
     target_dir = ast.literal_eval(os.getenv("TgtDirFresh"))
     target_base = ast.literal_eval(os.getenv("TgtBaseFresh"))
     out_files = []
-    date_str = date.today().isoformat()
     with sync_playwright() as p:
         # Запускаем Browser
         browser = p.chromium.launch(headless=True)
@@ -206,6 +215,7 @@ def downFileFresh():
                     page.locator(f"div:nth-child({i}) > div > .gridBoxImg > .dIB").click()
                 file_name = page.locator("#grid_form1_Список > .gridBody > .gridLine.select.eActivityBack").first.inner_text().strip()
                 index, match = next(((i, name) for i, name in enumerate(target_base) if name in file_name), (None, None))
+                date_str = extract_date(file_name)
                 if match:
                     target_folder = target_dir[index]
                     os.makedirs(target_folder, exist_ok=True)
