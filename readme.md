@@ -20,6 +20,7 @@ playwright install chromium
 mcedit config.env
 exit
 cd
+cd onecgetter/
 
 sudo cp onecgetter.service /etc/systemd/system
 sudo cp onecgetter.timer /etc/systemd/system
