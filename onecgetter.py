@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import zipfile
 import requests
 import ast
+from datetime import date
 
 load_dotenv('config.env')
 
@@ -171,6 +172,7 @@ def downFileFresh():
     target_dir = ast.literal_eval(os.getenv("TgtDirFresh"))
     target_base = ast.literal_eval(os.getenv("TgtBaseFresh"))
     out_files = []
+    date_str = date.today().isoformat()
     with sync_playwright() as p:
         # Запускаем Browser
         browser = p.chromium.launch(headless=True)
@@ -211,7 +213,7 @@ def downFileFresh():
                     with page.expect_download(timeout=600000) as download_info:
                         page.locator("[id=\"form1_ФормаВыгрузитьРезервнуюКопию\"]").click()
                     download = download_info.value
-                    save_path = os.path.join(target_folder, download.suggested_filename)
+                    save_path = os.path.join(target_folder, f"{date_str}-{download.suggested_filename}")
                     print(f"Download: {match} to {save_path}")
                     download.save_as(save_path)
                     target_base.pop(index)
