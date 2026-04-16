@@ -8,6 +8,8 @@ sudo chown -R onecget:onecget /opt/onecgetter/
 sudo chmod 600 /opt/onecgetter/config.env
 sudo chown root:root /opt/onecgetter/onecgetter.py
 sudo chmod 644 /opt/onecgetter/onecgetter.py
+sudo chown -R root:root /opt/onecgetter/venv
+sudo chmod -R go-w /opt/onecgetter/venv
 
 sudo -u onecget -s /bin/bash
 
