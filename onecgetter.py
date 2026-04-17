@@ -257,10 +257,10 @@ def downFileFresh():
     return out_files
 
 # Bcap GRM
-# url = getUrlGrm()
-# fp = downFileGrm(url)
-# rep = testFile(fp)
-# send_ntfy_message(rep)
+url = getUrlGrm()
+fp = downFileGrm(url)
+rep = testFile(fp)
+send_ntfy_message(rep)
 
 # Bcap Fresh
 out_files = downFileFresh()
