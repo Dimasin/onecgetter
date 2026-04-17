@@ -9,6 +9,8 @@ import zipfile
 import requests
 import ast
 import re
+from dateutil.parser import parse
+from datetime import datetime
 
 load_dotenv('config.env')
 
@@ -162,15 +164,35 @@ def send_ntfy_message(message: str):
         print(f"Error ntfy: Unknow alert error: {e}")
         return False
 
-def extract_date(s):
+def get_closest_past_date(date_str):
     """
-    Ищет паттерн: 2 цифры, точка, 2 цифры, точка, 4 цифры, возвращает yyyy-mm-dd или -
+    Поиск правильного формата даты, ближайшей к текущей не из будущего 
     """
-    match = re.search(r'(\d{2})\.(\d{2})\.(\d{4})', s) 
-    if match:
-        day, month, year = match.groups()
-        return f"{year}-{month}-{day}"
-    return "-"
+    now = datetime.now()
+    try:
+        option1 = parse(date_str, dayfirst=True)
+        option2 = parse(date_str, dayfirst=False)
+        past_options = [d for d in {option1, option2} if d <= now]
+        if not past_options:
+            return ""
+        return max(past_options).date().isoformat()
+    except:
+        return ""
+
+def smart_date_search(text):
+    """
+    Поиск ближайшей (не из будущего) даты, к текущей из входной строки 
+    """
+    pattern = r'\d{1,4}[.\-/]\d{1,2}[.\-/]\d{1,4}'  
+    matches = re.findall(pattern, text)
+    found_dates = []
+    for m in matches:
+        result = get_closest_past_date(m)
+        if result:
+            found_dates.append(result)
+    if not found_dates:
+        return f"_{datetime.now().date().isoformat()}"
+    return max(found_dates)
 
 def downFileFresh():
     """
@@ -215,7 +237,7 @@ def downFileFresh():
                     page.locator(f"div:nth-child({i}) > div > .gridBoxImg > .dIB").click()
                 file_name = page.locator("#grid_form1_Список > .gridBody > .gridLine.select.eActivityBack").first.inner_text().strip()
                 index, match = next(((i, name) for i, name in enumerate(target_base) if name in file_name), (None, None))
-                date_str = extract_date(file_name)
+                date_str = smart_date_search(file_name)
                 if match:
                     target_folder = target_dir[index]
                     os.makedirs(target_folder, exist_ok=True)
@@ -235,10 +257,10 @@ def downFileFresh():
     return out_files
 
 # Bcap GRM
-url = getUrlGrm()
-fp = downFileGrm(url)
-rep = testFile(fp)
-send_ntfy_message(rep)
+# url = getUrlGrm()
+# fp = downFileGrm(url)
+# rep = testFile(fp)
+# send_ntfy_message(rep)
 
 # Bcap Fresh
 out_files = downFileFresh()
