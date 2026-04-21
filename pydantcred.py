@@ -1,22 +1,40 @@
 import os
 from pathlib import Path
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    TgtDirFresh: list[str] | None = None
-    TgtBaseFresh: list[str] | None = None
-    TgtUrlFresh: str | None = None
+    # Группа Fresh
+    UrlFresh: str | None = None
     UserFresh: str | None = None
     PassFresh: str | None = None
-    TgtDirGrm: str | None = None
-    TgtUrlGrm: str | None = None
+    BasesFresh: list[str] | None = None
+    DirsFresh: list[str] | None = None
+    # группа GRM
+    UrlGrm: str | None = None
     UserGrm: str | None = None
     PassGrm: str | None = None
+    DirGrm: str | None = None
+    # Группа ntfy
     ntfy_url: str | None = None
     ntfy_cred: str | None = None
 
-    # Пустой конфиг, так как мы управляем файлами вручную через аргументы
-    model_config = SettingsConfigDict(extra='ignore')
+    @model_validator(mode='after')
+    def validate_dependencies(self) -> 'Settings':
+        # Словарь: {главное_поле: [список_зависимых]}
+        dependencies = {
+            'UrlFresh': ['UserFresh', 'PassFresh', 'BasesFresh', 'DirsFresh'],
+            'UrlGrm': ['UserGrm', 'PassGrm', 'DirGrm']
+        }
+        for master, slaves in dependencies.items():
+            master_val = getattr(self, master)
+            if master_val is not None and str(master_val).strip() != "":
+                # Если главный задан, проверяем зависимые
+                for slave in slaves:
+                    slave_val = getattr(self, slave)
+                    if slave_val is None or (isinstance(slave_val, str) and slave_val.strip() == ""):
+                        raise RuntimeError(f"Missing {slave} because {master} is set")
+        return self
 
 def get_settings(credential_id: str, fallback_filename: str) -> Settings:
     """
@@ -45,6 +63,11 @@ def get_settings(credential_id: str, fallback_filename: str) -> Settings:
 # Использование в коде:
 # "oneconf" - это ID в LoadCredential=ID:PATH
 # "configfo.env" - имя файла для EnvironmentFile или локальной разработки
-settings = get_settings("oneconf","configfo.env")
-print(f"Connecting to {settings.TgtUrlFresh}")
+try:
+    settings = get_settings("oneconf","configfo.env")
+except Exception as e:
+    print(e)
+    exit(10)
+ 
+print(f"Connecting to {settings.UrlFresh}")
 print("Bye")
