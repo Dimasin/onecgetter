@@ -6,7 +6,6 @@ import os
 from urllib.parse import urlparse
 import zipfile
 import requests
-import ast
 import re
 from dateutil.parser import parse
 from datetime import datetime
@@ -323,27 +322,31 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: str
                 print(f"Download error {match}: file {save_path}: {e}")
     return out_files
 
-# Использование в коде:
-# "oneconf" - это ID в LoadCredential=ID:PATH
-# "configfo.env" - имя файла для EnvironmentFile или локальной разработки
-try:
-    settings = get_settings("oneconf","configfo.env")
-except Exception as e:
-    print(e)
-    exit(10)
+def main():
+    # Использование в коде:
+    # "oneconf" - это ID в LoadCredential=ID:PATH
+    # "configfo.env" - имя файла для EnvironmentFile или локальной разработки
+    try:
+        settings = get_settings("oneconf","configfo.env")
+    except Exception as e:
+        print(e)
+        exit(10)
 
-# Bcap GRM
-if (settings.UrlGrm is not None):
-    url = getUrlGrm(settings.UrlGrm, settings.UserGrm, settings.PassGrm)
-    fp = downFileGrm(url, settings.DirGrm)
-    rep = testFile(fp)
-    if (settings.ntfy_url is not None):
-        send_ntfy_message(rep, settings.ntfy_url, settings.ntfy_cred)
-
-# Bcap Fresh
-if (settings.UrlFresh is not None):
-    out_files = downFileFresh(settings.UrlFresh, settings.UserFresh, settings.PassFresh, settings.DirsFresh, settings.BasesFresh)
-    for file in out_files:
-        rep = testFile(file)
+    # Bcap GRM
+    if (settings.UrlGrm is not None):
+        url = getUrlGrm(settings.UrlGrm, settings.UserGrm, settings.PassGrm)
+        fp = downFileGrm(url, settings.DirGrm)
+        rep = testFile(fp)
         if (settings.ntfy_url is not None):
             send_ntfy_message(rep, settings.ntfy_url, settings.ntfy_cred)
+
+    # Bcap Fresh
+    if (settings.UrlFresh is not None):
+        out_files = downFileFresh(settings.UrlFresh, settings.UserFresh, settings.PassFresh, settings.DirsFresh, settings.BasesFresh)
+        for file in out_files:
+            rep = testFile(file)
+            if (settings.ntfy_url is not None):
+                send_ntfy_message(rep, settings.ntfy_url, settings.ntfy_cred)
+
+if __name__ == "__main__":
+    main()

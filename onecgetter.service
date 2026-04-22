@@ -4,12 +4,21 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/onecgetter
-EnvironmentFile=/opt/onecgetter/config.env
-ExecStart=/opt/onecgetter/venv/bin/python -u onecgetter.py
-User=onecget
 
+User=onecget
+Group=onecget
+
+ExecStart=/opt/onecgetter/venv/bin/python -u onecgetter.py
+WorkingDirectory=/opt/onecgetter
+LoadCredential=oneconf:/etc/onecgetter/config.env
 SyslogIdentifier=onecgetter
+
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/onecgetter
+NoNewPrivileges=true
+CapabilityBoundingSet=
 
 [Install]
 WantedBy=multi-user.target
