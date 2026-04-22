@@ -4,15 +4,82 @@ import random
 import subprocess
 import os
 from urllib.parse import urlparse
-from dotenv import load_dotenv
 import zipfile
 import requests
 import ast
 import re
 from dateutil.parser import parse
 from datetime import datetime
+from pathlib import Path
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
 
-load_dotenv('config.env')
+class Settings(BaseSettings):
+    """
+    Класс параметров. Основные: UrlFresh, UrlGrm и ntfy_url. От них зависит выполнение части кода
+    для которого эти переменные обязательно используются. Остальные переменные группы
+    должны быть обязательно заданы, если заданы основные, иначе выполнение класса завершится ошибкой.
+    Исключение ntfy_cred может отсутствовать даже если задана ntfy_url.
+    Если основная переменная не задана, зависимая от нее часть кода не выполнится.
+    Например, если не задана ntfy_url, сообщения отправлены не будут.
+    """
+    # Группа Fresh
+    UrlFresh: str | None = None
+    UserFresh: str | None = None
+    PassFresh: str | None = None
+    BasesFresh: list[str] | None = None
+    DirsFresh: list[str] | None = None
+    # группа GRM
+    UrlGrm: str | None = None
+    UserGrm: str | None = None
+    PassGrm: str | None = None
+    DirGrm: str | None = None
+    # Группа ntfy
+    ntfy_url: str | None = None
+    ntfy_cred: str | None = None
+
+    @model_validator(mode='after')
+    def validate_dependencies(self) -> 'Settings':
+        # Словарь: {главное_поле: [список_зависимых]}
+        dependencies = {
+            'UrlFresh': ['UserFresh', 'PassFresh', 'BasesFresh', 'DirsFresh'],
+            'UrlGrm': ['UserGrm', 'PassGrm', 'DirGrm']
+        }
+        for master, slaves in dependencies.items():
+            master_val = getattr(self, master)
+            if master_val is not None and str(master_val).strip() != "":
+                # Если главный задан, проверяем зависимые
+                for slave in slaves:
+                    slave_val = getattr(self, slave)
+                    if slave_val is None or (isinstance(slave_val, str) and slave_val.strip() == ""):
+                        raise RuntimeError(f"Missing {slave} because {master} is set")
+            else:
+                setattr(self, master, None) # Устанавливаем в None реальную переменную, дальше в коде можно проверять None или нет
+        return self
+
+def get_settings(credential_id: str, fallback_filename: str) -> Settings:
+    """
+    Универсальная загрузка:
+    1. Ищет секрет в CREDENTIALS_DIRECTORY (systemd 247+)
+    2. Если нет, ищет файл в текущей рабочей директории (WorkingDirectory)
+    3. Если файлов нет, берет данные из окружения (EnvironmentFile или export)
+    """
+    # 1. Пытаемся взять LoadCredential
+    creds_dir = os.environ.get("CREDENTIALS_DIRECTORY")
+    if creds_dir:
+        cred_path = Path(creds_dir) / credential_id
+        if cred_path.exists():
+            return Settings(_env_file=cred_path)
+
+    # 2. Пытаемся взять файл из WorkingDirectory (или текущей папки)
+    # resolve() сделает путь абсолютным для надежности
+    fallback_path = Path.cwd() / fallback_filename
+    if fallback_path.exists():
+        return Settings(_env_file=fallback_path)
+
+    # 3. Крайний случай: всё берется из реального окружения (os.environ)
+    # Это сработает для EnvironmentFile в старых systemd
+    return Settings()
 
 def random_sleep(start=1, end=5, step=0.2):
     """
@@ -37,13 +104,10 @@ def to_str(data):
     # 3. Если это уже строка (str), возвращаем как есть
     return str(data)
 
-def getUrlGrm():
+def getUrlGrm(target_url: str, username: str, password: str):
     """
     Вытаскивает URL с сайта target_url
     """
-    target_url = os.getenv("TgtUrlGrm")
-    username = os.getenv("UserGrm")
-    password = os.getenv("PassGrm")
     with sync_playwright() as p:
         # Запускаем Browser
         browser = p.chromium.launch(headless=True)
@@ -85,11 +149,10 @@ def getUrlGrm():
         browser.close()
         return download_url
 
-def downFileGrm(download_url: str):
+def downFileGrm(download_url: str, target_dir: str):
     """
     Парсит download_url и загружет файл в target_dir
     """
-    target_dir = os.getenv("TgtDirGrm")
     os.makedirs(target_dir, exist_ok=True)
     # 1. Парсим URL, чтобы достать только путь (без ?x-amz...)
     path = urlparse(download_url).path
@@ -138,22 +201,31 @@ def testFile(full_path: str):
     print(rep)
     return rep
 
-def send_ntfy_message(message: str):
+def send_ntfy_message(message: str, ntfy_url: str, ntfy_cred = None):
     """
     Отправляет уведомление в ntfy
+    Тестировалось только с ntfy_cred is not None, по идее должно работать и с ntfy_cred = None
     """
-    ntfy_url = os.getenv("ntfy_url")
-    ntfy_cred = os.getenv("ntfy_cred")
     try:
-        response = requests.post(
-            ntfy_url,
-            data=message.encode('utf-8'),
-            headers={
-                "Authorization": f"Basic {ntfy_cred}",
-                "Title": "Bcapper 1C",  # Заголовок уведомления
-                "Priority": "low", # Можно менять на min, low, high, max
-            }
-        )
+        if (ntfy_cred is not None and str(ntfy_cred).strip() != ""):
+            response = requests.post(
+                ntfy_url,
+                data=message.encode('utf-8'),
+                headers={
+                    "Authorization": f"Basic {ntfy_cred}",
+                    "Title": "Bcapper 1C",  # Заголовок уведомления
+                    "Priority": "low", # Можно менять на min, low, high, max
+                }
+            )
+        else:
+            response = requests.post(
+                ntfy_url,
+                data=message.encode('utf-8'),
+                headers={
+                    "Title": "Bcapper 1C",  # Заголовок уведомления
+                    "Priority": "low", # Можно менять на min, low, high, max
+                }
+            )
         if response.status_code == 200:
             print("Info ntfy: Alert success!")
             return True
@@ -194,15 +266,10 @@ def smart_date_search(text):
         return f"_{datetime.now().date().isoformat()}"
     return max(found_dates)
 
-def downFileFresh():
+def downFileFresh(target_url: str, username: str, password: str, target_dir: str, target_base: str):
     """
     Загружает бэкапы target_base с сайта target_url в каталоги target_dir
     """
-    target_url = os.getenv("TgtUrlFresh")
-    username = os.getenv("UserFresh")
-    password = os.getenv("PassFresh")
-    target_dir = ast.literal_eval(os.getenv("TgtDirFresh"))
-    target_base = ast.literal_eval(os.getenv("TgtBaseFresh"))
     out_files = []
     with sync_playwright() as p:
         # Запускаем Browser
@@ -256,14 +323,27 @@ def downFileFresh():
                 print(f"Download error {match}: file {save_path}: {e}")
     return out_files
 
+# Использование в коде:
+# "oneconf" - это ID в LoadCredential=ID:PATH
+# "configfo.env" - имя файла для EnvironmentFile или локальной разработки
+try:
+    settings = get_settings("oneconf","configfo.env")
+except Exception as e:
+    print(e)
+    exit(10)
+
 # Bcap GRM
-url = getUrlGrm()
-fp = downFileGrm(url)
-rep = testFile(fp)
-send_ntfy_message(rep)
+if (settings.UrlGrm is not None):
+    url = getUrlGrm(settings.UrlGrm, settings.UserGrm, settings.PassGrm)
+    fp = downFileGrm(url, settings.DirGrm)
+    rep = testFile(fp)
+    if (settings.ntfy_url is not None):
+        send_ntfy_message(rep, settings.ntfy_url, settings.ntfy_cred)
 
 # Bcap Fresh
-out_files = downFileFresh()
-for file in out_files:
-    rep = testFile(file)
-    send_ntfy_message(rep)
+if (settings.UrlFresh is not None):
+    out_files = downFileFresh(settings.UrlFresh, settings.UserFresh, settings.PassFresh, settings.DirsFresh, settings.BasesFresh)
+    for file in out_files:
+        rep = testFile(file)
+        if (settings.ntfy_url is not None):
+            send_ntfy_message(rep, settings.ntfy_url, settings.ntfy_cred)

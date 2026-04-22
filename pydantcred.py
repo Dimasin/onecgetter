@@ -4,6 +4,14 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    """
+    Класс параметров. Основные: UrlFresh, UrlGrm и ntfy_url. От них зависит выполнение части кода
+    для которого эти переменные обязательно используются. Остальные переменные группы
+    должны быть обязательно заданы, если заданы основные, иначе выполнение класса завершится ошибкой.
+    Исключение ntfy_cred может отсутствовать даже если задана ntfy_url.
+    Если основная переменная не задана, зависимая от нее часть кода не выполнится.
+    Например, если не задана ntfy_url, сообщения отправлены не будут.
+    """
     # Группа Fresh
     UrlFresh: str | None = None
     UserFresh: str | None = None
@@ -34,6 +42,8 @@ class Settings(BaseSettings):
                     slave_val = getattr(self, slave)
                     if slave_val is None or (isinstance(slave_val, str) and slave_val.strip() == ""):
                         raise RuntimeError(f"Missing {slave} because {master} is set")
+            else:
+                setattr(self, master, None) # Устанавливаем в None реальную переменную, дальше в коде можно проверять None или нет
         return self
 
 def get_settings(credential_id: str, fallback_filename: str) -> Settings:
