@@ -110,7 +110,7 @@ def getUrlGrm(target_url: str, username: str, password: str):
     with sync_playwright() as p:
         # Запускаем Browser
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(accept_downloads=False)
+        context = browser.new_context(locale="ru-RU", accept_downloads=False)
         page = context.new_page()
         page.goto(target_url)
         # 1. АВТОРИЗАЦИЯ
@@ -265,7 +265,7 @@ def smart_date_search(text):
         return f"_{datetime.now().date().isoformat()}"
     return max(found_dates)
 
-def downFileFresh(target_url: str, username: str, password: str, target_dir: str, target_base: str):
+def downFileFresh(target_url: str, username: str, password: str, target_dir: list[str], target_base: list[str]):
     """
     Загружает бэкапы target_base с сайта target_url в каталоги target_dir
     """
@@ -273,17 +273,18 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: str
     with sync_playwright() as p:
         # Запускаем Browser
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(accept_downloads=True)
+        context = browser.new_context(locale="ru-RU", accept_downloads=True)
         page = context.new_page()
         try:
             page.goto(target_url)
+            page.wait_for_load_state("networkidle")
             # 1. АВТОРИЗАЦИЯ
             random_sleep()
             page.get_by_placeholder("Пользователь").fill(username)
             random_sleep()
             page.get_by_placeholder("Пароль").fill(password)
             random_sleep()
-            page.get_by_role("button", name="Войти").click()
+            page.get_by_role("button", name="Войти").click(delay=500)
             page.wait_for_load_state("networkidle")
             random_sleep(6,9)
             # 2. Проход по ссылкам
