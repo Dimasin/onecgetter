@@ -114,21 +114,21 @@ def getUrlGrm(target_url: str, username: str, password: str):
         page = context.new_page()
         page.goto(target_url)
         # 1. АВТОРИЗАЦИЯ
-        random_sleep();
+        random_sleep()
         page.get_by_placeholder('Телефон начните с символа "+"').fill(username)
-        random_sleep();
+        random_sleep()
         page.get_by_placeholder("Введите пароль").fill(password)
-        random_sleep();
+        random_sleep()
         page.get_by_text("Войти").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(6,9);
+        random_sleep(6,9)
         # 2. Проход по ссылкам
         page.get_by_text("Управление базами").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(6,9);
+        random_sleep(6,9)
         page.get_by_title("Сделать выгрузку").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(6,9);
+        random_sleep(6,9)
         with page.expect_popup() as popup_info:
             page.get_by_alt_text("Кнопка скачать").first.click()
         new_tab = popup_info.value
@@ -136,7 +136,7 @@ def getUrlGrm(target_url: str, username: str, password: str):
         new_tab.wait_for_selector('meta[http-equiv="refresh"]', state="attached")
         # Получаем содержимое атрибута content
         refresh_content = new_tab.locator('meta[http-equiv="refresh"]').get_attribute("content")
-        random_sleep();
+        random_sleep()
         # Извлекаем URL (отсекаем "0; url=")
         if refresh_content and "url=" in refresh_content:
             # Разделяем строку по 'url=' и берем вторую часть
@@ -277,22 +277,22 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: str
         page = context.new_page()
         page.goto(target_url)
         # 1. АВТОРИЗАЦИЯ
-        random_sleep();
+        random_sleep()
         page.get_by_placeholder("Пользователь").fill(username)
-        random_sleep();
+        random_sleep()
         page.get_by_placeholder("Пароль").fill(password)
-        random_sleep();
+        random_sleep()
         page.get_by_role("button", name="Войти").click()
         page.wait_for_load_state("networkidle")
-        random_sleep(6,9);
+        random_sleep(6,9)
         # 2. Проход по ссылкам
         page.locator('span[title="Архивирование"]').click()
         page.wait_for_load_state("networkidle")
-        random_sleep(6,9);       
+        random_sleep(6,9)
         page.locator(".gridLine").first.wait_for(state="attached", timeout=60000)
         rows = page.locator("#grid_form1_Список > .gridBody > .gridLine")
         count = rows.count()
-        random_sleep(6,9);
+        random_sleep(6,9)
         for i in range(1,count):
             if not target_base:
                 break

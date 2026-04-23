@@ -17,6 +17,7 @@ PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/opt/onecgetter
+ReadWritePaths=/var/opt/backup/backups
 NoNewPrivileges=true
 CapabilityBoundingSet=
 
