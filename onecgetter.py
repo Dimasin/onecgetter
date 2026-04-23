@@ -275,23 +275,31 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: str
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(accept_downloads=True)
         page = context.new_page()
-        page.goto(target_url)
-        # 1. АВТОРИЗАЦИЯ
-        random_sleep()
-        page.get_by_placeholder("Пользователь").fill(username)
-        random_sleep()
-        page.get_by_placeholder("Пароль").fill(password)
-        random_sleep()
-        page.get_by_role("button", name="Войти").click()
-        page.wait_for_load_state("networkidle")
-        random_sleep(6,9)
-        # 2. Проход по ссылкам
-        page.locator('span[title="Архивирование"]').click()
-        page.wait_for_load_state("networkidle")
-        random_sleep(6,9)
-        page.locator(".gridLine").first.wait_for(state="attached", timeout=60000)
-        rows = page.locator("#grid_form1_Список > .gridBody > .gridLine")
-        count = rows.count()
+        try:
+            page.goto(target_url)
+            # 1. АВТОРИЗАЦИЯ
+            random_sleep()
+            page.get_by_placeholder("Пользователь").fill(username)
+            random_sleep()
+            page.get_by_placeholder("Пароль").fill(password)
+            random_sleep()
+            page.get_by_role("button", name="Войти").click()
+            page.wait_for_load_state("networkidle")
+            random_sleep(6,9)
+            # 2. Проход по ссылкам
+            # page.locator('span[title="Архивирование"]').click()
+            # page.wait_for_load_state("networkidle")
+            target = page.locator('span[title="Архивирование"]')
+            target.wait_for(state="visible", timeout=60000)
+            target.click(delay=500)
+            random_sleep(6,9)
+            page.locator(".gridLine").first.wait_for(state="attached", timeout=60000)
+            rows = page.locator("#grid_form1_Список > .gridBody > .gridLine")
+            count = rows.count()
+        except Exception as e:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            page.screenshot(path=f"{timestamp}_fresh.png", full_page=True)
+            raise RuntimeError(f"Error Fresh click: {e}")
         random_sleep(6,9)
         for i in range(1,count):
             if not target_base:
