@@ -303,7 +303,7 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: lis
             raise RuntimeError(f"Error Fresh click: {e}")
         random_sleep(6,9)
         for i in range(1,count):
-            if not target_base:
+            if not target_base: # Если список баз пустой, выходим
                 break
             try:
                 if (i==1):
@@ -311,9 +311,10 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: lis
                 else:
                     page.locator(f"div:nth-child({i}) > div > .gridBoxImg > .dIB").click()
                 file_name = page.locator("#grid_form1_Список > .gridBody > .gridLine.select.eActivityBack").first.inner_text().strip()
+                # Если в текущей строке есть база из списка, переходим к загрузке
                 index, match = next(((i, name) for i, name in enumerate(target_base) if name in file_name), (None, None))
-                date_str = smart_date_search(file_name)
                 if match:
+                    date_str = smart_date_search(file_name)
                     target_folder = target_dir[index]
                     os.makedirs(target_folder, exist_ok=True)
                     # Ждем 10 минут, пока сервер готовит файл
@@ -323,10 +324,11 @@ def downFileFresh(target_url: str, username: str, password: str, target_dir: lis
                     save_path = os.path.join(target_folder, f"{date_str}-{download.suggested_filename}")
                     print(f"Download: {match} to {save_path}")
                     download.save_as(save_path)
-                    target_base.pop(index)
-                    target_dir.pop(index)
                     out_files.append(save_path)
                     print(f"Download success: {match} to {save_path}")
+                    # Если удалось скачать, убираем из списка найденную базу
+                    target_base.pop(index)
+                    target_dir.pop(index)
             except Exception as e:
                 print(f"Download error {match}: file {save_path}: {e}")
     return out_files
