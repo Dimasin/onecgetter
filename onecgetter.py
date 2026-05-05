@@ -108,43 +108,48 @@ def getUrlGrm(target_url: str, username: str, password: str):
     Вытаскивает URL с сайта target_url
     """
     with sync_playwright() as p:
+        download_url = ""
         # Запускаем Browser
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(locale="ru-RU", accept_downloads=False)
         page = context.new_page()
-        page.goto(target_url)
-        # 1. АВТОРИЗАЦИЯ
-        random_sleep()
-        page.get_by_placeholder('Телефон начните с символа "+"').fill(username)
-        random_sleep()
-        page.get_by_placeholder("Введите пароль").fill(password)
-        random_sleep()
-        page.get_by_text("Войти").click()
-        page.wait_for_load_state("networkidle")
-        random_sleep(6,9)
-        # 2. Проход по ссылкам
-        page.get_by_text("Управление базами").click()
-        page.wait_for_load_state("networkidle")
-        random_sleep(6,9)
-        page.get_by_title("Сделать выгрузку").click()
-        page.wait_for_load_state("networkidle")
-        random_sleep(6,9)
-        with page.expect_popup() as popup_info:
-            page.get_by_alt_text("Кнопка скачать").first.click()
-        new_tab = popup_info.value
-        # Ждем появления тега meta в head
-        new_tab.wait_for_selector('meta[http-equiv="refresh"]', state="attached")
-        # Получаем содержимое атрибута content
-        refresh_content = new_tab.locator('meta[http-equiv="refresh"]').get_attribute("content")
-        random_sleep()
-        # Извлекаем URL (отсекаем "0; url=")
-        if refresh_content and "url=" in refresh_content:
-            # Разделяем строку по 'url=' и берем вторую часть
-            download_url = refresh_content.split("url=")[1].strip()
-            print(f"Info getUrl: found URL: {download_url}")
-        else:
-            download_url = ""
-            print("Error getUrl: not found URL")
+        try:
+            page.goto(target_url)
+            # 1. АВТОРИЗАЦИЯ
+            random_sleep()
+            page.get_by_placeholder('Телефон начните с символа "+"').fill(username)
+            random_sleep()
+            page.get_by_placeholder("Введите пароль").fill(password)
+            random_sleep()
+            page.get_by_text("Войти").click()
+            page.wait_for_load_state("networkidle")
+            random_sleep(6,9)
+            # 2. Проход по ссылкам
+            page.get_by_text("Управление базами").click()
+            page.wait_for_load_state("networkidle")
+            random_sleep(6,9)
+            page.get_by_title("Сделать выгрузку").click()
+            page.wait_for_load_state("networkidle")
+            random_sleep(6,9)
+            with page.expect_popup() as popup_info:
+                page.get_by_alt_text("Кнопка скачать").first.click()
+            new_tab = popup_info.value
+            # Ждем появления тега meta в head
+            new_tab.wait_for_selector('meta[http-equiv="refresh"]', state="attached")
+            # Получаем содержимое атрибута content
+            refresh_content = new_tab.locator('meta[http-equiv="refresh"]').get_attribute("content")
+            random_sleep()
+            # Извлекаем URL (отсекаем "0; url=")
+            if refresh_content and "url=" in refresh_content:
+                # Разделяем строку по 'url=' и берем вторую часть
+                download_url = refresh_content.split("url=")[1].strip()
+                print(f"Info getUrl: found URL: {download_url}")
+            else:
+                print("Error getUrl: not found URL")
+        except Exception as e:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            page.screenshot(path=f"{timestamp}_fresh.png", full_page=True)
+            print(f"Error GRM click: {e}")
         browser.close()
         return download_url
 
@@ -346,8 +351,11 @@ def main():
     # Bcap GRM
     if (settings.UrlGrm is not None):
         url = getUrlGrm(settings.UrlGrm, settings.UserGrm, settings.PassGrm)
-        fp = downFileGrm(url, settings.DirGrm)
-        rep = testFile(fp)
+        if (url):
+            fp = downFileGrm(url, settings.DirGrm)
+            rep = testFile(fp)
+        else:
+            rep = "Error GRM click"
         if (settings.ntfy_url is not None):
             send_ntfy_message(rep, settings.ntfy_url, settings.ntfy_cred)
 
